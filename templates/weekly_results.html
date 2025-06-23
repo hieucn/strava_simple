@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Kết Quả Hàng Tuần - Thử Thách Chạy Bộ{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1><i class="fas fa-trophy"></i> Kết Quả Thử Thách Hàng Tuần</h1>
+        <p class="lead">Tuần từ {{ week_start.strftime('%d/%m') }} - {{ week_end.strftime('%d/%m/%Y') }}</p>
+        
+        <!-- Filter and View Toggle Section -->
+        <div class="filter-section mt-4">
+            <div class="row g-3 justify-content-center align-items-center">
+                <!-- Week Filter -->
+                <div class="col-12 col-md-auto">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <label for="weekFilter" class="form-label text-white me-2 mb-0 d-none d-sm-inline">
+                            <i class="fas fa-calendar-alt"></i> Tuần:
+                        </label>
+                        <form method="GET" class="flex-grow-1" style="max-width: 280px;">
+                            <select name="week" id="weekFilter" class="form-select" onchange="this.form.submit()">
+                                {% for week in available_weeks %}
+                                    <option value="{{ week.start_date_str }}" 
+                                            {% if week.start_date_str == selected_week %}selected{% endif %}>
+                                        {{ week.start_date.strftime('%d/%m') }} - {{ week.end_date.strftime('%d/%m/%Y') }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <input type="hidden" name="view" value="{{ view_mode }}">
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- View Toggle -->
+                <div class="col-12 col-md-auto">
+                    <div class="view-toggle btn-group w-100" role="group" style="max-width: 200px; margin: 0 auto;">
+                        <a href="{{ url_for('weekly_results', week=selected_week, view='table') }}" 
+                           class="btn {{ 'btn-light' if view_mode == 'table' else 'btn-outline-light' }}" 
+                           title="Xem dạng bảng">
+                            <i class="fas fa-table"></i> <span class="d-none d-md-inline">Bảng</span>
+                        </a>
+                        <a href="{{ url_for('weekly_results', week=selected_week, view='cards') }}" 
+                           class="btn {{ 'btn-light' if view_mode == 'cards' else 'btn-outline-light' }}" 
+                           title="Xem dạng thẻ">
+                            <i class="fas fa-th-large"></i> <span class="d-none d-md-inline">Thẻ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container my-3 my-md-5">
+    {% if results %}
+        {% if view_mode == 'table' %}
+            <!-- Table View -->
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-user d-none d-md-inline"></i> <span class="d-none d-md-inline">Vận Động Viên</span><span class="d-md-none"><i class="fas fa-user" title="Vận Động Viên"></i></span></th>
+                            <th class="d-none d-md-table-cell"><i class="fas fa-bullseye"></i> Mục Tiêu</th>
+                            <th><i class="fas fa-route d-none d-md-inline"></i> <span class="d-none d-md-inline">Quãng Đường</span><span class="d-md-none"><i class="fas fa-route" title="Quãng Đường"></i></span></th>
+                            <th><i class="fas fa-percentage d-none d-md-inline"></i> <span class="d-none d-md-inline">Tiến Độ</span><span class="d-md-none"><i class="fas fa-percentage" title="Tiến Độ"></i></span></th>
+                            <th class="d-none d-lg-table-cell"><i class="fas fa-running"></i> Số Lần Chạy</th>
+                            <th class="d-none d-lg-table-cell"><i class="fas fa-clock"></i> Tốc Độ TB</th>
+                            <!-- <th class="d-none d-xl-table-cell"><i class="fas fa-mountain"></i> Độ Cao</th> -->
+                            <th><i class="fas fa-flag d-none d-md-inline"></i> <span class="d-none d-md-inline">Trạng Thái</span><span class="d-md-none"><i class="fas fa-flag" title="Trạng Thái"></i></span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <strong class="text-nowrap">{{ result.first_name }} <span class="d-none d-sm-inline">{{ result.last_name }}</span></strong>
+                                            <a href="{{result.strava_url}}" target="_blank" rel="noopener noreferrer">
+                                                    <small class="badge bg-warning text-dark ms-1">Strava</small>
+                                                </a>
+                                            <div class="d-sm-none small text-muted">
+                                                {% if result.distance_goal %}{{ result.distance_goal }}km{% else %}-{% endif %} / 
+                                                {% if result.total_distance %}{{ "%.1f"|format(result.total_distance) }}km{% else %}-{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if result.distance_goal %}
+                                        {{ result.distance_goal }} km
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if result.total_distance %}
+                                        <span class="text-nowrap">{{ "%.1f"|format(result.total_distance) }}<span class="d-none d-sm-inline"> km</span></span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if result.status == 'Chạy chui' %}
+                                        <div class="progress-circle no-challenge" style="width: 40px; height: 40px; font-size: 0.8rem;">
+                                            <i class="fas fa-question"></i>
+                                        </div>
+                                    {% else %}
+                                        <div class="progress-circle {{ 'completed' if result.status == 'Hoàn thành kế hoạch' else 'over-achieved' if result.status == 'Chạy hơi lố' else 'in-progress' }}" style="width: 40px; height: 40px; font-size: 0.7rem;">
+                                            {% if result.progress_percentage %}{{ result.progress_percentage|round(0)|int }}%{% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if result.runs %}
+                                        {{ result.runs }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if result.average_pace and result.average_pace > 0 %}
+                                        <span class="text-nowrap">{{ (result.average_pace // 60)|int }}:{{ "%02d"|format((result.average_pace % 60)|int) }}/km</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <!-- <td class="d-none d-xl-table-cell">
+                                    {% if result.elevation_gain and result.elevation_gain > 0 %}
+                                        {{ result.elevation_gain|int }}m
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td> -->
+                                <td>
+                                    <span class="badge {{ 'bg-success' if result.status == 'Hoàn thành kế hoạch' else 'bg-danger' if result.status == 'Chạy hơi lố' else 'bg-danger' if result.status == 'Đóng phạt' else 'bg-secondary' if result.status == 'Chạy chui' else 'bg-warning text-dark' }} d-sm-none" style="font-size: 0.7rem;">
+                                        {% if result.status == 'Hoàn thành kế hoạch' %}✓{% elif result.status == 'Chạy hơi lố' %}⚡{% elif result.status == 'Đóng phạt' %}✗{% elif result.status == 'Chạy chui' %}?{% else %}⏳{% endif %}
+                                    </span>
+                                    <span class="badge {{ 'bg-success' if result.status == 'Hoàn thành kế hoạch' else 'bg-danger' if result.status == 'Chạy hơi lố' else 'bg-danger' if result.status == 'Đóng phạt' else 'bg-secondary' if result.status == 'Chạy chui' else 'bg-warning text-dark' }} d-none d-sm-inline">
+                                        {{ result.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <!-- Card View -->
+            <div class="row g-3">
+                {% for result in results %}
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="card challenge-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">
+                                            {{ result.first_name }} {{ result.last_name }}
+                                            {% if result.is_external %}
+                                                <small class="badge bg-info">Strava</small>
+                                            {% endif %}
+                                        </h5>
+                                        <p class="text-muted small">@{{ result.username }}</p>
+                                    </div>
+                                    {% if result.status == 'Chạy chui' %}
+                                        <div class="progress-circle no-challenge">
+                                            <i class="fas fa-question"></i>
+                                        </div>
+                                    {% else %}
+                                        <div class="progress-circle {{ 'completed' if result.status == 'Hoàn thành kế hoạch' else 'over-achieved' if result.status == 'Chạy hơi lố' else 'in-progress' }}">
+                                            {% if result.progress_percentage %}{{ result.progress_percentage|round(0)|int }}%{% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if result.distance_goal %}
+                                    <div class="mb-3">
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar {{ 'bg-success' if result.status == 'Hoàn thành kế hoạch' else 'bg-danger' if result.status == 'Chạy hơi lố' else 'bg-warning' }}" 
+                                                 style="width: {% if result.progress_percentage %}{{ result.progress_percentage if result.progress_percentage <= 100 else 100 }}{% else %}0{% endif %}%"></div>
+                                        </div>
+                                        <small class="text-muted">
+                                            {% if result.total_distance %}{{ "%.1f"|format(result.total_distance) }}{% else %}0{% endif %} km / {{ result.distance_goal }} km
+                                        </small>
+                                    </div>
+                                {% endif %}
+
+                                {% if result.runs and result.runs > 0 %}
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <i class="fas fa-running text-primary"></i>
+                                            <div class="small">{{ result.runs }} lần</div>
+                                        </div>
+                                        {% if result.average_pace and result.average_pace > 0 %}
+                                            <div class="col-4">
+                                                <i class="fas fa-clock text-success"></i>
+                                                <div class="small">{{ (result.average_pace // 60)|int }}:{{ "%02d"|format((result.average_pace % 60)|int) }}/km</div>
+                                            </div>
+                                        {% endif %}
+                                        <!-- {% if result.elevation_gain and result.elevation_gain > 0 %}
+                                            <div class="col-4">
+                                                <i class="fas fa-mountain text-warning"></i>
+                                                <div class="small">{{ result.elevation_gain|int }}m</div>
+                                            </div>
+                                        {% endif %} -->
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer text-center">
+                                <span class="badge {{ 'bg-success' if result.status == 'Hoàn thành kế hoạch' else 'bg-danger' if result.status == 'Chạy hơi lố' else 'bg-secondary' if result.status == 'Chạy chui' else 'bg-warning text-dark' }}">
+                                    {{ result.status }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-trophy fa-3x text-muted mb-3"></i>
+            <h3>Chưa có thử thách nào tuần này</h3>
+            <p class="text-muted">Hãy là người đầu tiên đăng ký thử thách tuần này!</p>
+            <a href="{{ url_for('register_challenge') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> <span class="d-none d-sm-inline">Đăng Ký Ngay</span><span class="d-sm-none">Đăng Ký</span>
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

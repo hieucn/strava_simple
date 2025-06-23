@@ -1,0 +1,11 @@
+# version: '3.8'
+
+services:
+  web:
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - .log:/app/.rootlog
+    ports:
+      - "5001:5001"

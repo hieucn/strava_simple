@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng Ký - Thử Thách Chạy Bộ{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1><i class="fas fa-user-plus"></i> Đăng Ký Thử Thách Hàng Tuần</h1>
+        <p class="lead">Tham gia thử thách chạy bộ tuần này và theo dõi tiến triển của bạn!</p>
+    </div>
+</div>
+
+<div class="container my-3 my-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            {% if not authenticated %}
+                <div class="card challenge-card">
+                    <div class="card-body">
+                        <h4 class="card-title text-center mb-4">
+                            <i class="fas fa-lock"></i> Yêu Cầu Xác Thực
+                        </h4>
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mật Khẩu</label>
+                                <input type="password" class="form-control form-control-lg" id="password" name="password" required autocomplete="current-password">
+                                <div class="form-text">Nhập mật khẩu admin để truy cập đăng ký</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                <i class="fas fa-key"></i> <span class="d-none d-sm-inline">Xác Thực</span><span class="d-sm-none">Login</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card challenge-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-running"></i> Đăng Ký Thử Thách
+                            </h4>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-info btn-sm" onclick="syncStravaData()" id="syncBtn" title="Cập nhật dữ liệu từ Strava">
+                                    <i class="fas fa-sync"></i> <span class="d-none d-lg-inline">Cập Nhật Strava</span>
+                                </button>
+                                <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm" title="Đăng xuất khỏi phên làm việc">
+                                    <i class="fas fa-sign-out-alt"></i> <span class="d-none d-lg-inline">Đăng Xuất</span>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <form method="POST">
+                            <div class="mb-4">
+                                <label for="username" class="form-label fw-bold">Chọn Người Dùng</label>
+                                <select class="form-select form-select-lg" id="username" name="username" required>
+                                    <option value="">Chọn người dùng...</option>
+                                    {% for user in existing_users %}
+                                        <option value="{{ user.username }}">
+                                            {{ user.first_name }} {{ user.last_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Chọn từ các người dùng hiện có trong hệ thống</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="distance_goal" class="form-label fw-bold">Mục Tiêu Quãng Đường (km)</label>
+                                <select class="form-select form-select-lg" id="distance_goal" name="distance_goal">
+                                    <option value="0">Không đăng ký</option>
+                                    <option value="35" selected>35 km</option>
+                                    <option value="45">45 km</option>
+                                    <option value="55">55 km</option>
+                                    <option value="65">65 km</option>
+                                    <option value="75">75 km</option>
+                                    <option value="85">85 km</option>
+                                    <option value="100">100 km</option>
+                                </select>
+                                <div class="form-text">Chọn mục tiêu quãng đường hàng tuần của bạn</div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">Đăng Ký Thử Thách Hàng Tuần</span><span class="d-sm-none">Đăng Ký</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Strava Sync Status -->
+                <div class="mt-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-download"></i> Trạng Thái Đồng Bộ Strava</h6>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="loadSyncStatus()" title="Tải lại trạng thái">
+                                <i class="fas fa-refresh"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="syncStatus">
+                                <div class="d-flex justify-content-center">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sync Logs Modal -->
+                <div class="modal fade" id="syncLogsModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-file-alt"></i> Log Đồng Bộ Strava</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="syncProgress" class="mb-3" style="display: none;">
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                                    </div>
+                                    <small class="text-muted">Đang cập nhật dữ liệu từ Strava...</small>
+                                </div>
+                                <div id="syncResult"></div>
+                                <div id="syncLogs">
+                                    <h6>Chi tiết quá trình:</h6>
+                                    <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto; font-size: 0.9rem;"></pre>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Lưu ý:</strong> Đăng ký sẽ tạo mới hoặc cập nhật thử thách hàng tuần của người dùng được chọn. 
+                        Các thử thách hiện tại sẽ được cập nhật với mục tiêu quãng đường mới.
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Strava sync functionality
+function syncStravaData() {
+    const syncBtn = document.getElementById('syncBtn');
+    const originalText = syncBtn.innerHTML;
+    
+    // Show loading state
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="d-none d-sm-inline">Đang xử lý...</span>';
+    
+    // Show logs modal
+    const modal = new bootstrap.Modal(document.getElementById('syncLogsModal'));
+    modal.show();
+    
+    // Show progress bar
+    document.getElementById('syncProgress').style.display = 'block';
+    document.getElementById('syncResult').innerHTML = '';
+    document.querySelector('#syncLogs pre').textContent = 'Đang khởi tạo quá trình đồng bộ...';
+    
+    // Make AJAX request
+    fetch('/sync-strava', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Hide progress bar
+        document.getElementById('syncProgress').style.display = 'none';
+        
+        // Show results
+        const resultDiv = document.getElementById('syncResult');
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <strong>Thành công!</strong><br>
+                    ${data.message}
+                    ${data.runners_count > 0 ? `<br><small>Đã xử lý ${data.runners_count} vận động viên</small>` : ''}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> <strong>Lỗi!</strong><br>
+                    ${data.message}
+                </div>
+            `;
+        }
+        
+        // Show logs
+        document.querySelector('#syncLogs pre').textContent = data.logs || 'Không có log';
+        
+        // Reload sync status
+        loadSyncStatus();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('syncProgress').style.display = 'none';
+        document.getElementById('syncResult').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> <strong>Lỗi kết nối!</strong><br>
+                Không thể kết nối đến server. Vui lòng thử lại.
+            </div>
+        `;
+    })
+    .finally(() => {
+        // Reset button
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = originalText;
+    });
+}
+
+function loadSyncStatus() {
+    const statusDiv = document.getElementById('syncStatus');
+    statusDiv.innerHTML = `
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    fetch('/sync-strava-status')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            statusDiv.innerHTML = `
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <i class="fas fa-clock text-primary"></i>
+                            <div class="small"><strong>Lần cuối cập nhật</strong></div>
+                            <div class="text-muted">${data.last_update}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <i class="fas fa-users text-success"></i>
+                            <div class="small"><strong>Tổng số user</strong></div>
+                            <div class="text-muted">${data.total_users}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <i class="fas fa-file-alt text-info"></i>
+                            <div class="small"><strong>Trạng thái</strong></div>
+                            <div class="text-muted">Hoạt động</div>
+                        </div>
+                    </div>
+                </div>
+                ${data.recent_logs ? `
+                    <div class="mt-3">
+                        <h6>Log gần đây:</h6>
+                        <pre class="bg-light p-2 rounded" style="max-height: 150px; overflow-y: auto; font-size: 0.8rem;">${data.recent_logs}</pre>
+                    </div>
+                ` : ''}
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Không thể tải trạng thái: ${data.message}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading status:', error);
+        statusDiv.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <i class="fas fa-exclamation-circle"></i> Lỗi kết nối khi tải trạng thái
+            </div>
+        `;
+    });
+}
+
+// Load status when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Only load if authenticated section is visible
+    if (document.getElementById('syncStatus')) {
+        loadSyncStatus();
+    }
+});
+</script>
+{% endblock %}
