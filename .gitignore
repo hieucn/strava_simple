@@ -198,18 +198,38 @@ logs/
 *-key.json
 chavahieucn.pkl
 shorturl-*.json
+*.pem
+*.key
+*.crt
+*.cert
+*secret*
+*password*
+*token*
+*credential*
 
 # Environment files
 .env
 .env.local
 .env.production
 .env.development
+.env.staging
+.env.test
 
 # Google Cloud Service Account Keys
 *.json
 !requirements.txt
 !package.json
 !package-lock.json
+!.env.example
+
+# SSH and GPG keys
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.ppk
+.ssh/
+.gnupg/
 
 # Docker
 .dockerignore
