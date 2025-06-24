@@ -128,7 +128,7 @@ class StravaLeaderboardCrawler:
             #print(driver.page_source)
             # get "This Week's Leaderboard"
             try:
-                WebDriverWait(driver, 10).until(expected_conditions.presence_of_element_located(
+                WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located(
                     (By.CSS_SELECTOR, "div.page")))
             except TimeoutException:
                 logger.info("Request Timed Out")

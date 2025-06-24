@@ -247,13 +247,16 @@
             <a class="navbar-brand" href="{{ url_for('home') }}">
                 <i class="fas fa-running"></i>Thử Thách Chạy Bộ
             </a>
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                <i class="fas fa-trophy"></i>Xem Kết Quả
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href="{{ url_for('weekly_results') }}" title="Kết Quả">
-                        <i class="fas fa-trophy"></i> <span class="d-none d-lg-inline">Kết Quả</span>
+                    <a class="nav-link" href="{{ url_for('weekly_results') }}" title="Kết quả thử thách">
+                        <i class="fas fa-trophy"></i> <span class="d-none d-lg-inline">Kết quả thử thách</span>
                     </a>
                     <a class="nav-link" href="{{ url_for('register_challenge') }}" title="Đăng Ký">
                         <i class="fas fa-user-plus"></i> <span class="d-none d-lg-inline">Đăng Ký</span>
