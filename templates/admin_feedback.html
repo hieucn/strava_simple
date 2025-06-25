@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}Quản Lý Phản Hồi - Admin{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1><i class="fas fa-cogs"></i> Quản Lý Phản Hồi</h1>
+        <p class="lead">Xem xét và triển khai các đề xuất từ người dùng</p>
+    </div>
+</div>
+
+<div class="container my-5">
+    {% if not authenticated %}
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card challenge-card">
+                    <div class="card-body">
+                        <h4 class="card-title text-center mb-4">
+                            <i class="fas fa-lock"></i> Yêu Cầu Xác Thực Admin
+                        </h4>
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mật Khẩu Admin</label>
+                                <input type="password" class="form-control form-control-lg" id="password" name="password" required autocomplete="current-password">
+                                <div class="form-text">Nhập mật khẩu admin để truy cập quản lý phản hồi</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                <i class="fas fa-key"></i> Xác Thực
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-5">
+        {% set pending_count = feedback_list|selectattr('status', 'equalto', 'pending')|list|length %}
+        {% set in_progress_count = feedback_list|selectattr('status', 'equalto', 'in_progress')|list|length %}
+        {% set completed_count = feedback_list|selectattr('implementation_status', 'equalto', 'completed')|list|length %}
+        {% set total_count = feedback_list|length %}
+        
+        <div class="col-md-3">
+            <div class="card stats-card border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon primary">
+                        <i class="fas fa-inbox text-white"></i>
+                    </div>
+                    <div>
+                        <div class="stats-number">{{ pending_count }}</div>
+                        <div class="stats-label">Chờ xử lý</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon warning">
+                        <i class="fas fa-cog text-white"></i>
+                    </div>
+                    <div>
+                        <div class="stats-number">{{ in_progress_count }}</div>
+                        <div class="stats-label">Đang xử lý</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon success">
+                        <i class="fas fa-check text-white"></i>
+                    </div>
+                    <div>
+                        <div class="stats-number">{{ completed_count }}</div>
+                        <div class="stats-label">Hoàn thành</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon info">
+                        <i class="fas fa-list text-white"></i>
+                    </div>
+                    <div>
+                        <div class="stats-number">{{ total_count }}</div>
+                        <div class="stats-label">Tổng cộng</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback List -->
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-gradient text-white py-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h4 class="mb-0"><i class="fas fa-list-ul me-2"></i>Danh Sách Phản Hồi</h4>
+        </div>
+        <div class="card-body p-0">
+            {% if feedback_list %}
+                {% for feedback in feedback_list %}
+                <div class="feedback-item border-bottom p-4" data-feedback-id="{{ feedback.id }}">
+                    <div class="row align-items-start">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="me-3">
+                                    {% if feedback.feedback_type == 'suggestion' %}
+                                        <div class="type-icon suggestion">💡</div>
+                                    {% elif feedback.feedback_type == 'bug' %}
+                                        <div class="type-icon bug">🐛</div>
+                                    {% elif feedback.feedback_type == 'improvement' %}
+                                        <div class="type-icon improvement">⚡</div>
+                                    {% elif feedback.feedback_type == 'ui_ux' %}
+                                        <div class="type-icon ui">🎨</div>
+                                    {% elif feedback.feedback_type == 'performance' %}
+                                        <div class="type-icon performance">🚀</div>
+                                    {% else %}
+                                        <div class="type-icon other">💬</div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1">{{ feedback.title }}</h5>
+                                    <div class="small text-muted mb-2">
+                                        <i class="fas fa-user me-1"></i>{{ feedback.user_name or 'Ẩn danh' }}
+                                        {% if feedback.email %}
+                                            | <i class="fas fa-envelope me-1"></i>{{ feedback.email }}
+                                        {% endif %}
+                                        | <i class="fas fa-clock me-1"></i>{{ feedback.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    </div>
+                                    <p class="mb-2">{{ feedback.description[:200] }}{% if feedback.description|length > 200 %}...{% endif %}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <!-- Status Badges -->
+                                <div class="mb-2">
+                                    {% if feedback.priority == 'urgent' %}
+                                        <span class="badge bg-danger">🔴 Khẩn cấp</span>
+                                    {% elif feedback.priority == 'high' %}
+                                        <span class="badge bg-warning">🟠 Cao</span>
+                                    {% elif feedback.priority == 'medium' %}
+                                        <span class="badge bg-info">🟡 Trung bình</span>
+                                    {% else %}
+                                        <span class="badge bg-success">🟢 Thấp</span>
+                                    {% endif %}
+                                    
+                                    {% if feedback.status == 'pending' %}
+                                        <span class="badge bg-secondary">⏳ Chờ xử lý</span>
+                                    {% elif feedback.status == 'in_progress' %}
+                                        <span class="badge bg-warning">🔄 Đang xử lý</span>
+                                    {% elif feedback.status == 'completed' %}
+                                        <span class="badge bg-success">✅ Hoàn thành</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Implementation Status -->
+                                {% if feedback.implementation_status %}
+                                    <div class="mb-2">
+                                        {% if feedback.implementation_status == 'not_started' %}
+                                            <small class="text-muted">📝 Chưa bắt đầu</small>
+                                        {% elif feedback.implementation_status == 'planned' %}
+                                            <small class="text-info">📋 Đã lên kế hoạch</small>
+                                        {% elif feedback.implementation_status == 'deploying' %}
+                                            <small class="text-warning">🚀 Đang triển khai</small>
+                                        {% elif feedback.implementation_status == 'completed' %}
+                                            <small class="text-success">✅ Đã triển khai</small>
+                                        {% elif feedback.implementation_status == 'failed' %}
+                                            <small class="text-danger">❌ Triển khai thất bại</small>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Action Buttons -->
+                                <div class="btn-group-vertical d-grid gap-2">
+                                    {% if feedback.feature_status != 'generated' %}
+                                        <button class="btn btn-outline-primary btn-sm" onclick="generateFeature({{ feedback.id }})">
+                                            <i class="fas fa-magic me-1"></i>Tạo Kế Hoạch AI
+                                        </button>
+                                    {% endif %}
+                                    
+                                    {% if feedback.feature_status == 'generated' and feedback.implementation_status != 'completed' %}
+                                        <button class="btn btn-outline-success btn-sm" onclick="deployFeature({{ feedback.id }})">
+                                            <i class="fas fa-rocket me-1"></i>Triển Khai
+                                        </button>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-outline-info btn-sm" onclick="viewDetails({{ feedback.id }})">
+                                        <i class="fas fa-eye me-1"></i>Chi Tiết
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature Generation Details (Hidden by default) -->
+                    <div id="details-{{ feedback.id }}" class="feature-details mt-3" style="display: none;">
+                        <div class="alert alert-light border">
+                            <h6><i class="fas fa-info-circle me-1"></i>Thông Tin Chi Tiết</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Loại:</strong> {{ feedback.feedback_type }}<br>
+                                    <strong>Trạng thái:</strong> {{ feedback.status }}<br>
+                                    <strong>Triển khai:</strong> {{ feedback.implementation_status or 'Chưa bắt đầu' }}
+                                </div>
+                                <div class="col-md-6">
+                                    {% if feedback.feature_generated_at %}
+                                        <strong>AI tạo kế hoạch:</strong> {{ format_vietnam_time(feedback.feature_generated_at, '%d/%m/%Y %H:%M') }} (UTC+7)<br>
+                                    {% endif %}
+                                    <strong>Cập nhật lần cuối:</strong> {{ format_vietnam_time(feedback.updated_at, '%d/%m/%Y %H:%M') }} (UTC+7)
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <strong>Mô tả đầy đủ:</strong><br>
+                                <div class="text-muted">{{ feedback.description }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4>Chưa có phản hồi nào</h4>
+                    <p class="text-muted">Người dùng chưa gửi phản hồi nào.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
+                <h5 id="loadingText">Đang xử lý...</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Result Modal -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resultModalTitle">Kết Quả</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="resultModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feedback-item {
+    transition: background-color 0.2s ease;
+}
+.feedback-item:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+}
+.type-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+}
+.feature-details {
+    border-top: 2px solid #e9ecef;
+    padding-top: 1rem;
+}
+</style>
+
+<script>
+function generateFeature(feedbackId) {
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    document.getElementById('loadingText').textContent = 'AI đang tạo kế hoạch triển khai...';
+    modal.show();
+    
+    fetch(`/admin/generate-feature/${feedbackId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        modal.hide();
+        
+        const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+        document.getElementById('resultModalTitle').textContent = 'Kế Hoạch Triển Khai AI';
+        
+        if (data.success) {
+            document.getElementById('resultModalBody').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>${data.message}
+                </div>
+                <div class="mt-3">
+                    <h6>Kế hoạch triển khai:</h6>
+                    <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; font-size: 0.9rem;">${data.plan}</pre>
+                </div>
+            `;
+            // Refresh page after 2 seconds
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            document.getElementById('resultModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>${data.message}
+                </div>
+            `;
+        }
+        
+        resultModal.show();
+    })
+    .catch(error => {
+        modal.hide();
+        alert('Đã xảy ra lỗi: ' + error.message);
+    });
+}
+
+function deployFeature(feedbackId) {
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    document.getElementById('loadingText').textContent = 'Đang triển khai tính năng và khởi động lại hệ thống...';
+    modal.show();
+    
+    fetch(`/admin/deploy-feature/${feedbackId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        modal.hide();
+        
+        const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+        document.getElementById('resultModalTitle').textContent = 'Kết Quả Triển Khai';
+        
+        let alertClass = data.success ? 'alert-success' : 'alert-danger';
+        let icon = data.success ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+        
+        document.getElementById('resultModalBody').innerHTML = `
+            <div class="alert ${alertClass}">
+                <i class="${icon} me-2"></i>${data.message}
+            </div>
+            ${data.log ? `
+            <div class="mt-3">
+                <h6>Log triển khai:</h6>
+                <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; font-size: 0.85rem;">${data.log}</pre>
+            </div>
+            ` : ''}
+        `;
+        
+        resultModal.show();
+        
+        // Refresh page after successful deployment
+        if (data.success && data.status === 'deployed') {
+            setTimeout(() => location.reload(), 3000);
+        }
+    })
+    .catch(error => {
+        modal.hide();
+        alert('Đã xảy ra lỗi: ' + error.message);
+    });
+}
+
+function viewDetails(feedbackId) {
+    const detailsDiv = document.getElementById(`details-${feedbackId}`);
+    if (detailsDiv.style.display === 'none') {
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+</script>
+    {% endif %}
+</div>
+{% endblock %}

@@ -39,12 +39,12 @@
                                 <i class="fas fa-running"></i> Đăng Ký Thử Thách
                             </h4>
                             <div class="d-flex gap-2">
+                                <a href="{{ url_for('admin_feedback') }}" class="btn btn-warning btn-sm" title="Quản lý phản hồi từ người dùng">
+                                    <i class="fas fa-comments"></i> <span class="d-none d-lg-inline">Phản Hồi</span>
+                                </a>
                                 <button type="button" class="btn btn-info btn-sm" onclick="syncStravaData()" id="syncBtn" title="Cập nhật dữ liệu từ Strava">
                                     <i class="fas fa-sync"></i> <span class="d-none d-lg-inline">Cập Nhật Strava</span>
                                 </button>
-                                <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm" title="Đăng xuất khỏi phên làm việc">
-                                    <i class="fas fa-sign-out-alt"></i> <span class="d-none d-lg-inline">Đăng Xuất</span>
-                                </a>
                             </div>
                         </div>
                         

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Góp Ý Cải Thiện Hệ Thống - Thử Thách Chạy Bộ{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1><i class="fas fa-comments"></i> Góp Ý Cải Thiện Hệ Thống</h1>
+        <p class="lead">Chia sẻ ý tưởng của bạn để chúng tôi phát triển những tính năng tuyệt vời hơn!</p>
+    </div>
+</div>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Feedback Stats -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="card stats-card border-0 text-center">
+                        <div class="card-body py-4">
+                            <div class="stats-icon primary mx-auto mb-2">
+                                <i class="fas fa-lightbulb text-white"></i>
+                            </div>
+                            <h6 class="mb-1">Ý Tưởng Mới</h6>
+                            <small class="text-muted">Đề xuất tính năng</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card border-0 text-center">
+                        <div class="card-body py-4">
+                            <div class="stats-icon success mx-auto mb-2">
+                                <i class="fas fa-bug text-white"></i>
+                            </div>
+                            <h6 class="mb-1">Báo Lỗi</h6>
+                            <small class="text-muted">Phát hiện sự cố</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card border-0 text-center">
+                        <div class="card-body py-4">
+                            <div class="stats-icon warning mx-auto mb-2">
+                                <i class="fas fa-magic text-white"></i>
+                            </div>
+                            <h6 class="mb-1">AI Tự Động</h6>
+                            <small class="text-muted">Triển khai thông minh</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Form -->
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h3 class="mb-0"><i class="fas fa-pencil-alt me-2"></i>Gửi Phản Hồi</h3>
+                    <p class="mb-0 mt-2 opacity-75">Mọi ý kiến của bạn đều được chúng tôi trân trọng</p>
+                </div>
+                <div class="card-body p-5">
+                    <form method="POST" id="feedbackForm">
+                        <div class="row g-4">
+                            <!-- User Information -->
+                            <div class="col-md-6">
+                                <label for="user_name" class="form-label">
+                                    <i class="fas fa-user text-primary me-1"></i>Họ và Tên
+                                </label>
+                                <input type="text" class="form-control" id="user_name" name="user_name" placeholder="Nhập họ tên (không bắt buộc)">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope text-primary me-1"></i>Email
+                                </label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Nhập email (không bắt buộc)">
+                            </div>
+
+                            <!-- Feedback Type -->
+                            <div class="col-md-6">
+                                <label for="feedback_type" class="form-label">
+                                    <i class="fas fa-tags text-primary me-1"></i>Loại Phản Hồi
+                                </label>
+                                <select class="form-select" id="feedback_type" name="feedback_type" required>
+                                    <option value="suggestion">💡 Đề xuất tính năng mới</option>
+                                    <option value="bug">🐛 Báo cáo lỗi</option>
+                                    <option value="improvement">⚡ Cải thiện tính năng hiện tại</option>
+                                    <option value="ui_ux">🎨 Cải thiện giao diện</option>
+                                    <option value="performance">🚀 Tối ưu hiệu suất</option>
+                                    <option value="other">💬 Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="priority" class="form-label">
+                                    <i class="fas fa-exclamation-triangle text-primary me-1"></i>Mức Độ Ưu Tiên
+                                </label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="low">🟢 Thấp</option>
+                                    <option value="medium" selected>🟡 Trung bình</option>
+                                    <option value="high">🟠 Cao</option>
+                                    <option value="urgent">🔴 Khẩn cấp</option>
+                                </select>
+                            </div>
+
+                            <!-- Title -->
+                            <div class="col-12">
+                                <label for="title" class="form-label">
+                                    <i class="fas fa-heading text-primary me-1"></i>Tiêu Đề <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="title" name="title" required 
+                                       placeholder="Tóm tắt ngắn gọn về ý kiến của bạn" maxlength="500">
+                                <div class="form-text">Tối đa 500 ký tự</div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-12">
+                                <label for="description" class="form-label">
+                                    <i class="fas fa-comment-dots text-primary me-1"></i>Mô Tả Chi Tiết <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="description" name="description" rows="6" required 
+                                          placeholder="Mô tả chi tiết ý kiến của bạn. Hãy cung cấp càng nhiều thông tin càng tốt để chúng tôi hiểu rõ và triển khai hiệu quả nhất."></textarea>
+                                <div class="form-text">
+                                    <strong>Gợi ý:</strong> Bạn có thể mô tả:
+                                    <ul class="mb-0 mt-1">
+                                        <li>Vấn đề hiện tại (nếu có)</li>
+                                        <li>Giải pháp đề xuất</li>
+                                        <li>Lợi ích kỳ vọng</li>
+                                        <li>Ví dụ cụ thể</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- AI Information Box -->
+                            <div class="col-12">
+                                <div class="alert alert-info border-0" style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.1) 0%, rgba(13, 110, 253, 0.1) 100%);">
+                                    <div class="d-flex align-items-start">
+                                        <div class="me-3">
+                                            <i class="fas fa-robot text-info" style="font-size: 1.5rem;"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="text-info mb-2">🤖 Triển Khai Tự Động Bằng AI</h6>
+                                            <p class="mb-0 small">
+                                                Phản hồi của bạn sẽ được phân tích bởi hệ thống AI để tự động tạo ra kế hoạch triển khai tính năng. 
+                                                Admin có thể xem xét và triển khai ngay lập tức với chỉ một cú nhấp chuột!
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5 py-3" style="background: linear-gradient(45deg, #667eea, #764ba2); border: none;">
+                                    <i class="fas fa-paper-plane me-2"></i>Gửi Phản Hồi
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="row g-4 mt-5">
+                <div class="col-12">
+                    <h4 class="text-center mb-4">🔄 Quy Trình Xử Lý Phản Hồi</h4>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="achievement-icon primary mb-3 mx-auto" style="width: 80px; height: 80px;">
+                            <i class="fas fa-comments text-white" style="font-size: 1.8rem;"></i>
+                        </div>
+                        <h6>1. Gửi Phản Hồi</h6>
+                        <small class="text-muted">Bạn gửi ý kiến thông qua form này</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="achievement-icon success mb-3 mx-auto" style="width: 80px; height: 80px;">
+                            <i class="fas fa-brain text-white" style="font-size: 1.8rem;"></i>
+                        </div>
+                        <h6>2. AI Phân Tích</h6>
+                        <small class="text-muted">Hệ thống AI tạo kế hoạch triển khai</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="achievement-icon warning mb-3 mx-auto" style="width: 80px; height: 80px;">
+                            <i class="fas fa-user-check text-white" style="font-size: 1.8rem;"></i>
+                        </div>
+                        <h6>3. Admin Duyệt</h6>
+                        <small class="text-muted">Admin xem xét và phê duyệt</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="achievement-icon info mb-3 mx-auto" style="width: 80px; height: 80px;">
+                            <i class="fas fa-rocket text-white" style="font-size: 1.8rem;"></i>
+                        </div>
+                        <h6>4. Triển Khai</h6>
+                        <small class="text-muted">Tính năng được áp dụng tự động</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    
+    if (!title || !description) {
+        e.preventDefault();
+        alert('Vui lòng điền đầy đủ tiêu đề và mô tả!');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang gửi...';
+    submitBtn.disabled = true;
+    
+    // Re-enable after 3 seconds in case of error
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 3000);
+});
+</script>
+{% endblock %}

@@ -10,7 +10,7 @@
         .hero-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             color: white;
-            padding: 2rem 0;
+            padding: 1.5rem 0;
             position: relative;
             overflow: hidden;
         }
@@ -38,7 +38,7 @@
         }
         @media (min-width: 768px) {
             .hero-section {
-                padding: 3rem 0;
+                padding: 2rem 0;
             }
         }
         .challenge-card {
@@ -363,17 +363,63 @@
         .btn:hover::before {
             left: 100%;
         }
-        .navbar-brand i { margin-right: 10px; }
+        .navbar-brand i { margin-right: 8px; }
+        .navbar-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+            padding: 0.25rem 0;
+        }
+        .brand-main {
+            display: flex;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .brand-subtitle {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            font-weight: 400;
+            margin-top: -2px;
+            margin-left: 2rem; /* Align with text after icon */
+        }
+        
+        /* Compact navbar */
+        .navbar {
+            padding: 0.3rem 0;
+            min-height: 50px;
+        }
+        
+        /* Fixed navbar adjustments */
+        body {
+            padding-top: 50px; /* Reduced from 76px */
+        }
         
         /* Mobile navbar improvements */
         @media (max-width: 767px) {
             .navbar-brand {
-                font-size: 1.1rem;
+                padding: 0.2rem 0;
+            }
+            .brand-main {
+                font-size: 1rem;
+            }
+            .brand-subtitle {
+                font-size: 0.6rem;
+                margin-left: 1.5rem; /* Smaller icon offset on mobile */
+            }
+            .navbar {
+                padding: 0.2rem 0;
+                min-height: 45px;
+            }
+            body {
+                padding-top: 45px; /* Much smaller padding for mobile */
             }
             .navbar-nav .nav-link {
-                padding: 0.5rem 1rem;
+                padding: 0.4rem 0.8rem;
                 text-align: center;
                 min-width: 44px; /* Touch target size */
+                font-size: 0.9rem;
             }
             .navbar-nav .nav-link i {
                 font-size: 1.2rem;
@@ -651,6 +697,35 @@
             }
         }
         
+        /* Strava link styling with authentic brand colors */
+        .strava-icon {
+            color: #FC4C02 !important; /* Authentic Strava orange */
+            transition: all 0.3s ease;
+        }
+        .strava-link {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 2px 4px;
+            display: inline-block;
+        }
+        .strava-link:hover {
+            background: rgba(252, 76, 2, 0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(252, 76, 2, 0.25);
+        }
+        .strava-link:hover .strava-icon {
+            transform: scale(1.1);
+            color: #E34402 !important; /* Darker Strava orange on hover */
+            filter: brightness(1.1);
+        }
+        .strava-link strong, .strava-link h5 {
+            color: inherit !important;
+            margin-bottom: 0;
+        }
+        .strava-link:hover strong, .strava-link:hover h5 {
+            color: #FC4C02 !important; /* Strava orange for text on hover */
+        }
+        
         /* Mobile table improvements */
         @media (max-width: 767px) {
             .table th,
@@ -668,14 +743,21 @@
                 height: 35px;
                 font-size: 0.65rem;
             }
+            
+            .strava-link {
+                padding: 3px 5px;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('home') }}">
-                <i class="fas fa-running"></i>Thử Thách Chạy Bộ
+                <div class="brand-main">
+                    <i class="fas fa-running"></i>Hiền Vương Runners
+                </div>
+                <div class="brand-subtitle">Thử Thách Chạy Bộ</div>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -687,6 +769,9 @@
                     </a>
                     <a class="nav-link" href="{{ url_for('register_challenge') }}" title="Đăng Ký">
                         <i class="fas fa-user-plus"></i> <span class="d-none d-lg-inline">Đăng Ký</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('feedback') }}" title="Góp ý cải thiện">
+                        <i class="fas fa-comments"></i> <span class="d-none d-lg-inline">Góp Ý</span>
                     </a>
                 </div>
             </div>

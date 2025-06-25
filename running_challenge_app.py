@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from datetime import datetime, timedelta
+import pytz
 import psycopg2
 import psycopg2.extras
 import os
@@ -13,6 +14,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-key-only-not-for-production')
+
+# Timezone configuration for UTC+7 (Vietnam/Ho Chi Minh)
+VIETNAM_TZ = pytz.timezone('Asia/Ho_Chi_Minh')
+UTC_TZ = pytz.UTC
 
 # Configuration
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")  # Password for registration access
@@ -118,6 +123,41 @@ def init_db():
             )
         ''')
         
+        logger.info("Creating feedback table...")
+        # Feedback table for user suggestions and comments
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS feedback (
+                id SERIAL PRIMARY KEY,
+                user_name VARCHAR(255),
+                email VARCHAR(255),
+                feedback_type VARCHAR(50) NOT NULL DEFAULT 'suggestion',
+                title VARCHAR(500) NOT NULL,
+                description TEXT NOT NULL,
+                priority VARCHAR(20) DEFAULT 'medium',
+                status VARCHAR(20) DEFAULT 'pending',
+                admin_notes TEXT,
+                implementation_status VARCHAR(20) DEFAULT 'not_started',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        logger.info("Creating feature_generations table...")
+        # Table to track AI-generated features from feedback
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS feature_generations (
+                id SERIAL PRIMARY KEY,
+                feedback_id INTEGER NOT NULL,
+                generated_code TEXT,
+                file_changes TEXT,
+                deployment_status VARCHAR(20) DEFAULT 'pending',
+                deployment_log TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                deployed_at TIMESTAMP,
+                FOREIGN KEY (feedback_id) REFERENCES feedback (id)
+            )
+        ''')
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -137,13 +177,30 @@ def get_db_connection():
         logger.error(f"Failed to connect to database: {str(e)}")
         raise
 
+def get_vietnam_time():
+    """Get current time in Vietnam timezone (UTC+7)"""
+    return datetime.now(VIETNAM_TZ)
+
 def get_current_week_range():
-    """Get current week's Monday to Sunday range"""
-    today = datetime.now().date()
+    """Get current week's Monday to Sunday range in Vietnam timezone"""
+    today = get_vietnam_time().date()
     days_since_monday = today.weekday()
     week_start = today - timedelta(days=days_since_monday)
     week_end = week_start + timedelta(days=6)
     return week_start, week_end
+
+def format_vietnam_time(dt, format_str='%d/%m/%Y %H:%M:%S'):
+    """Format datetime to Vietnam timezone"""
+    if dt is None:
+        return None
+    
+    # If datetime is naive, assume it's UTC
+    if dt.tzinfo is None:
+        dt = UTC_TZ.localize(dt)
+    
+    # Convert to Vietnam timezone
+    vietnam_dt = dt.astimezone(VIETNAM_TZ)
+    return vietnam_dt.strftime(format_str)
 
 def get_user_by_username(username):
     """Get user by username"""
@@ -334,7 +391,8 @@ def weekly_results():
                              available_weeks=available_weeks,
                              selected_week=week_start.strftime('%Y-%m-%d'),
                              view_mode=view_mode,
-                             last_update=last_update)
+                             last_update=last_update,
+                             format_vietnam_time=format_vietnam_time)
     
     except Exception as e:
         logger.error(f"Error in weekly_results: {str(e)}", exc_info=True)
@@ -509,7 +567,7 @@ def sync_strava_status():
         
         return jsonify({
             'success': True,
-            'last_update': last_update.strftime('%d/%m/%Y %H:%M:%S') if last_update else 'Chưa có',
+            'last_update': format_vietnam_time(last_update) if last_update else 'Chưa có',
             'total_users': total_users,
             'recent_logs': recent_logs
         })
@@ -517,6 +575,314 @@ def sync_strava_status():
     except Exception as e:
         logger.error(f"Failed to get sync status: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
+
+@app.route('/feedback', methods=['GET', 'POST'])
+def feedback():
+    """User feedback submission form"""
+    if request.method == 'POST':
+        try:
+            user_name = request.form.get('user_name', '').strip()
+            email = request.form.get('email', '').strip()
+            feedback_type = request.form.get('feedback_type', 'suggestion')
+            title = request.form.get('title', '').strip()
+            description = request.form.get('description', '').strip()
+            priority = request.form.get('priority', 'medium')
+            
+            # Validation
+            if not title or not description:
+                flash('Vui lòng điền đầy đủ tiêu đề và mô tả!', 'error')
+                return render_template('feedback.html')
+            
+            # Save to database
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO feedback (user_name, email, feedback_type, title, description, priority)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (user_name, email, feedback_type, title, description, priority))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"New feedback submitted: {title} by {user_name or 'Anonymous'}")
+            flash('Cảm ơn bạn đã gửi phản hồi! Chúng tôi sẽ xem xét và cải thiện hệ thống.', 'success')
+            return redirect(url_for('feedback'))
+            
+        except Exception as e:
+            logger.error(f"Error saving feedback: {str(e)}", exc_info=True)
+            flash('Đã xảy ra lỗi khi gửi phản hồi. Vui lòng thử lại.', 'error')
+    
+    return render_template('feedback.html')
+
+@app.route('/admin/feedback', methods=['GET', 'POST'])
+def admin_feedback():
+    """Admin interface to manage feedback (password protected)"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password != ADMIN_PASSWORD:
+            flash('Mật khẩu không đúng!', 'error')
+            return render_template('admin_feedback.html', authenticated=False)
+        session['authenticated'] = True
+        return redirect(url_for('admin_feedback'))
+    
+    # Check if already authenticated
+    if 'authenticated' not in session:
+        return render_template('admin_feedback.html', authenticated=False)
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all feedback ordered by newest first
+        cursor.execute('''
+            SELECT f.*, fg.deployment_status as feature_status, fg.created_at as feature_generated_at
+            FROM feedback f
+            LEFT JOIN feature_generations fg ON f.id = fg.feedback_id
+            ORDER BY f.created_at DESC
+        ''')
+        feedback_list = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('admin_feedback.html', feedback_list=feedback_list, authenticated=True, format_vietnam_time=format_vietnam_time)
+        
+    except Exception as e:
+        logger.error(f"Error loading admin feedback: {str(e)}", exc_info=True)
+        flash('Đã xảy ra lỗi khi tải danh sách phản hồi.', 'error')
+        return render_template('admin_feedback.html', authenticated=False)
+
+@app.route('/admin/generate-feature/<int:feedback_id>', methods=['POST'])
+def generate_feature(feedback_id):
+    """Generate feature from feedback using AI"""
+    if 'authenticated' not in session:
+        return jsonify({'success': False, 'message': 'Chưa xác thực admin'}), 403
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get feedback details
+        cursor.execute('SELECT * FROM feedback WHERE id = %s', (feedback_id,))
+        feedback_data = cursor.fetchone()
+        
+        if not feedback_data:
+            return jsonify({'success': False, 'message': 'Không tìm thấy phản hồi'}), 404
+        
+        # Generate AI response for feature implementation using our AI service
+        try:
+            from ai_feature_generator import AIFeatureGenerator
+            ai_generator = AIFeatureGenerator()
+            generated_plan = ai_generator.generate_implementation_plan(feedback_data)
+            logger.info(f"AI generated implementation plan for feedback {feedback_id}")
+        except Exception as ai_error:
+            logger.warning(f"AI generation failed, using fallback: {str(ai_error)}")
+            # Fallback to basic template
+            generated_plan = f"""
+AI IMPLEMENTATION PLAN - Generated at {format_vietnam_time(get_vietnam_time())}
+{'='*80}
+
+📋 FEEDBACK ANALYSIS
+Title: {feedback_data['title']}
+Type: {feedback_data['feedback_type']}
+Priority: {feedback_data['priority']}
+
+📝 USER REQUEST
+{feedback_data['description']}
+
+🎯 BASIC IMPLEMENTATION PLAN
+1. Backend Changes:
+   - Add new route in running_challenge_app.py
+   - Create database migrations if needed
+   - Implement business logic
+
+2. Frontend Changes:
+   - Create new template files
+   - Update existing templates
+   - Add new CSS/JavaScript if needed
+
+3. Database Updates:
+   - Schema modifications: TBD based on feature requirements
+   - Data migration scripts: TBD
+
+4. Testing:
+   - Unit tests for new functionality
+   - Integration tests
+   - UI/UX testing
+
+Priority: {feedback_data['priority']}
+Note: This is a basic plan. For detailed analysis, ensure ai_feature_generator.py is properly configured.
+            """
+        
+        # Save generated plan
+        cursor.execute('''
+            INSERT INTO feature_generations (feedback_id, generated_code, deployment_status)
+            VALUES (%s, %s, 'generated')
+        ''', (feedback_id, generated_plan))
+        
+        # Update feedback status
+        cursor.execute('''
+            UPDATE feedback SET status = 'in_progress', implementation_status = 'planned', updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''', (feedback_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"Generated implementation plan for feedback ID: {feedback_id}")
+        return jsonify({
+            'success': True, 
+            'message': 'Đã tạo kế hoạch triển khai tính năng',
+            'plan': generated_plan
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating feature: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
+
+@app.route('/admin/deploy-feature/<int:feedback_id>', methods=['POST'])
+def deploy_feature(feedback_id):
+    """Deploy generated feature and restart Docker container"""
+    if 'authenticated' not in session:
+        return jsonify({'success': False, 'message': 'Chưa xác thực admin'}), 403
+    
+    try:
+        import subprocess
+        import os
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get feature generation details
+        cursor.execute('''
+            SELECT fg.*, f.title, f.description 
+            FROM feature_generations fg
+            JOIN feedback f ON fg.feedback_id = f.id
+            WHERE fg.feedback_id = %s
+        ''', (feedback_id,))
+        feature_data = cursor.fetchone()
+        
+        if not feature_data:
+            return jsonify({'success': False, 'message': 'Không tìm thấy kế hoạch triển khai'}), 404
+        
+        # Create deployment log
+        deployment_log = f"Starting deployment for: {feature_data['title']}\n"
+        deployment_log += f"Generated at: {feature_data['created_at']}\n"
+        deployment_log += f"Feature description: {feature_data['description']}\n\n"
+        
+        # Update deployment status
+        cursor.execute('''
+            UPDATE feature_generations 
+            SET deployment_status = 'deploying', deployment_log = %s
+            WHERE feedback_id = %s
+        ''', (deployment_log, feedback_id))
+        
+        cursor.execute('''
+            UPDATE feedback 
+            SET implementation_status = 'deploying', updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''', (feedback_id,))
+        
+        conn.commit()
+        
+        try:
+            # Use enhanced Docker manager for deployment
+            from docker_manager import DockerManager
+            docker_manager = DockerManager()
+            
+            deployment_log += "Using AI-powered Docker deployment manager...\n"
+            deployment_result = docker_manager.deploy_feature(feedback_id)
+            
+            deployment_log += deployment_result['log']
+            
+            if deployment_result['success']:
+                deployment_status = deployment_result['status']
+                implementation_status = 'completed'
+                deployment_log += f"\n✅ Deployment successful! Container: {deployment_result.get('container', 'unknown')}\n"
+            else:
+                deployment_status = deployment_result.get('status', 'failed')
+                implementation_status = 'failed'
+                deployment_log += f"\n❌ Deployment failed: {deployment_result['message']}\n"
+                
+        except ImportError:
+            deployment_log += "Docker manager not available, using basic restart...\n"
+            # Fallback to basic Docker restart
+            try:
+                import subprocess
+                container_result = subprocess.run(['docker', 'ps', '--format', '{{.Names}}'], 
+                                               capture_output=True, text=True, timeout=10)
+                
+                if container_result.returncode == 0:
+                    containers = container_result.stdout.strip().split('\n')
+                    app_container = None
+                    
+                    for container in containers:
+                        if any(keyword in container.lower() for keyword in ['strava', 'running', 'challenge', 'app']):
+                            app_container = container
+                            break
+                    
+                    if app_container:
+                        deployment_log += f"Found container: {app_container}\n"
+                        restart_result = subprocess.run(['docker', 'restart', app_container], 
+                                                      capture_output=True, text=True, timeout=30)
+                        
+                        if restart_result.returncode == 0:
+                            deployment_log += "Container restarted successfully!\n"
+                            deployment_status = 'deployed'
+                            implementation_status = 'completed'
+                        else:
+                            deployment_log += f"Container restart failed: {restart_result.stderr}\n"
+                            deployment_status = 'failed'
+                            implementation_status = 'failed'
+                    else:
+                        deployment_log += "No matching container found\n"
+                        deployment_status = 'manual_restart_needed'
+                        implementation_status = 'pending_restart'
+                else:
+                    deployment_log += f"Docker command failed: {container_result.stderr}\n"
+                    deployment_status = 'failed'
+                    implementation_status = 'failed'
+                    
+            except Exception as basic_error:
+                deployment_log += f"Basic deployment error: {str(basic_error)}\n"
+                deployment_status = 'failed'
+                implementation_status = 'failed'
+                
+        except Exception as deploy_error:
+            deployment_log += f"Deployment manager error: {str(deploy_error)}\n"
+            deployment_status = 'failed'
+            implementation_status = 'failed'
+        
+        # Update final status
+        cursor.execute('''
+            UPDATE feature_generations 
+            SET deployment_status = %s, deployment_log = %s, deployed_at = CURRENT_TIMESTAMP
+            WHERE feedback_id = %s
+        ''', (deployment_status, deployment_log, feedback_id))
+        
+        cursor.execute('''
+            UPDATE feedback 
+            SET implementation_status = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''', (implementation_status, feedback_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logger.info(f"Deployment attempted for feedback ID: {feedback_id}, status: {deployment_status}")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Triển khai hoàn tất với trạng thái: {deployment_status}',
+            'status': deployment_status,
+            'log': deployment_log
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deploying feature: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Lỗi triển khai: {str(e)}'}), 500
 
 # Template files
 # @app.before_first_request
