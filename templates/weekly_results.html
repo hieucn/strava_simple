@@ -51,6 +51,222 @@
     </div>
 </div>
 
+<!-- Enhanced Quick Stats Dashboard -->
+<div class="container my-4">
+    {% if results %}
+        <!-- Main Stats Row -->
+        <div class="row g-4 mb-4">
+            <!-- Total Participants -->
+            <div class="col-6 col-lg-3">
+                <div class="card stats-card border-0">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stats-icon primary">
+                            <i class="fas fa-users text-white"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number">{{ results|length }}</div>
+                            <div class="stats-label">Người tham gia</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Distance -->
+            <div class="col-6 col-lg-3">
+                <div class="card stats-card border-0">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stats-icon success">
+                            <i class="fas fa-route text-white"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number">{{ "%.0f"|format(results|selectattr('total_distance')|map(attribute='total_distance')|sum) }}</div>
+                            <div class="stats-label">Tổng km</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Completed Challenges -->
+            <div class="col-6 col-lg-3">
+                <div class="card stats-card border-0">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stats-icon warning">
+                            <i class="fas fa-trophy text-white"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number">{{ results|selectattr('status', 'equalto', 'Hoàn thành kế hoạch')|list|length + results|selectattr('status', 'equalto', 'Chạy hơi lố')|list|length }}</div>
+                            <div class="stats-label">Hoàn thành</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Runs -->
+            <div class="col-6 col-lg-3">
+                <div class="card stats-card border-0">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stats-icon info">
+                            <i class="fas fa-running text-white"></i>
+                        </div>
+                        <div>
+                            <div class="stats-number">{{ results|selectattr('runs')|map(attribute='runs')|sum or 0 }}</div>
+                            <div class="stats-label">Lượt chạy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Runner Achievements Row -->
+        <div class="row g-4 mb-4">
+            <!-- Fastest Runner -->
+            {% set fastest_runner = results|selectattr('average_pace')|sort(attribute='average_pace')|first %}
+            {% if fastest_runner and fastest_runner.average_pace and fastest_runner.average_pace > 0 %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card achievement-card border-0">
+                    <div class="card-body text-center">
+                        <div class="achievement-icon speed mb-3">
+                            <i class="fas fa-bolt text-white"></i>
+                        </div>
+                        <h6 class="achievement-title">🏃‍♂️ Người chạy nhanh nhất</h6>
+                        <div class="achievement-name">{{ fastest_runner.first_name }} {{ fastest_runner.last_name }}</div>
+                        <div class="achievement-value">{{ (fastest_runner.average_pace // 60)|int }}:{{ "%02d"|format((fastest_runner.average_pace % 60)|int) }}/km</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Longest Distance Runner -->
+            {% set longest_runner = results|selectattr('total_distance')|sort(attribute='total_distance', reverse=true)|first %}
+            {% if longest_runner and longest_runner.total_distance and longest_runner.total_distance > 0 %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card achievement-card border-0">
+                    <div class="card-body text-center">
+                        <div class="achievement-icon distance mb-3">
+                            <i class="fas fa-road text-white"></i>
+                        </div>
+                        <h6 class="achievement-title">🏃‍♀️ Người chạy xa nhất</h6>
+                        <div class="achievement-name">{{ longest_runner.first_name }} {{ longest_runner.last_name }}</div>
+                        <div class="achievement-value">{{ "%.1f"|format(longest_runner.total_distance) }} km</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Most Active Runner -->
+            {% set most_active = results|selectattr('runs')|sort(attribute='runs', reverse=true)|first %}
+            {% if most_active and most_active.runs and most_active.runs > 0 %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card achievement-card border-0">
+                    <div class="card-body text-center">
+                        <div class="achievement-icon active mb-3">
+                            <i class="fas fa-fire text-white"></i>
+                        </div>
+                        <h6 class="achievement-title">🔥 Người chạy nhiều nhất</h6>
+                        <div class="achievement-name">{{ most_active.first_name }} {{ most_active.last_name }}</div>
+                        <div class="achievement-value">{{ most_active.runs }} lần chạy</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Fun Facts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card fun-facts-card border-0">
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 col-md-3">
+                                <div class="fun-fact">
+                                    <div class="fun-fact-icon">🌍</div>
+                                    <div class="fun-fact-label">Có thể chạy quanh</div>
+                                    <div class="fun-fact-value">
+                                        {% set total_km = results|selectattr('total_distance')|map(attribute='total_distance')|sum %}
+                                        {% if total_km > 40075 %}
+                                            {{ "%.1f"|format(total_km / 40075) }} vòng Trái Đất
+                                        {% elif total_km > 384 %}
+                                            {{ "%.1f"|format(total_km / 384) }}% đến Mặt Trăng
+                                        {% else %}
+                                            {{ "%.1f"|format(total_km) }} km tổng cộng
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="fun-fact">
+                                    <div class="fun-fact-icon">⏱️</div>
+                                    <div class="fun-fact-label">Thời gian ước tính</div>
+                                    <div class="fun-fact-value">
+                                        {% set avg_pace = results|selectattr('average_pace')|map(attribute='average_pace')|list %}
+                                        {% if avg_pace %}
+                                            {% set total_time = (results|selectattr('total_distance')|map(attribute='total_distance')|sum) * (avg_pace|sum / avg_pace|length) %}
+                                            {% if total_time > 3600 %}
+                                                {{ "%.0f"|format(total_time / 3600) }} giờ
+                                            {% else %}
+                                                {{ "%.0f"|format(total_time / 60) }} phút
+                                            {% endif %}
+                                        {% else %}
+                                            - giờ
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="fun-fact">
+                                    <div class="fun-fact-icon">📈</div>
+                                    <div class="fun-fact-label">Tỉ lệ hoàn thành</div>
+                                    <div class="fun-fact-value">
+                                        {% set completed = results|selectattr('status', 'equalto', 'Hoàn thành kế hoạch')|list|length + results|selectattr('status', 'equalto', 'Chạy hơi lố')|list|length %}
+                                        {% set with_goals = results|selectattr('distance_goal')|list|length %}
+                                        {% if with_goals > 0 %}
+                                            {{ "%.0f"|format((completed / with_goals) * 100) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="fun-fact">
+                                    <div class="fun-fact-icon">🎯</div>
+                                    <div class="fun-fact-label">Trung bình mỗi người</div>
+                                    <div class="fun-fact-value">
+                                        {% if results|length > 0 %}
+                                            {{ "%.1f"|format((results|selectattr('total_distance')|map(attribute='total_distance')|sum) / results|length) }} km
+                                        {% else %}
+                                            0 km
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Last Update Info -->
+        {% if last_update %}
+            <div class="row justify-content-center mt-3">
+                <div class="col-12 col-md-8 col-lg-6">
+                    <div class="alert alert-info text-center py-3 mb-0 border-0" style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.1) 0%, rgba(13, 110, 253, 0.1) 100%); border-radius: 15px; backdrop-filter: blur(10px);">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="me-3">
+                                <i class="fas fa-sync-alt text-info" style="font-size: 1.2rem; animation: spin 2s linear infinite;"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-info mb-1">Dữ liệu được cập nhật</div>
+                                <small class="text-muted">{{ last_update.strftime('%d/%m/%Y lúc %H:%M:%S') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
 <div class="container my-3 my-md-5">
     {% if results %}
         {% if view_mode == 'table' %}

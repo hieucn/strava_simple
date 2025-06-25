@@ -312,6 +312,17 @@ def weekly_results():
         all_results = list(results) + list(unregistered_users)
         logger.info(f"Total results to display: {len(all_results)}")
         
+        # Get last crawl success timestamp
+        logger.info("Fetching last crawl success timestamp...")
+        cursor.execute('''
+            SELECT MAX(updated_at) as last_update
+            FROM weekly_challenges 
+            WHERE start_date = %s
+        ''', (week_start,))
+        last_update_result = cursor.fetchone()
+        last_update = last_update_result['last_update'] if last_update_result and last_update_result['last_update'] else None
+        logger.info(f"Last update timestamp: {last_update}")
+        
         cursor.close()
         conn.close()
         
@@ -322,7 +333,8 @@ def weekly_results():
                              week_end=week_end,
                              available_weeks=available_weeks,
                              selected_week=week_start.strftime('%Y-%m-%d'),
-                             view_mode=view_mode)
+                             view_mode=view_mode,
+                             last_update=last_update)
     
     except Exception as e:
         logger.error(f"Error in weekly_results: {str(e)}", exc_info=True)
