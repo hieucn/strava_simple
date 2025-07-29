@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from datetime import datetime, timedelta
 import pytz
 import psycopg2
@@ -9,6 +9,8 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from dotenv import load_dotenv
 import io
+import subprocess
+import json
 
 load_dotenv()
 
@@ -612,7 +614,26 @@ def feedback():
             logger.error(f"Error saving feedback: {str(e)}", exc_info=True)
             flash('Đã xảy ra lỗi khi gửi phản hồi. Vui lòng thử lại.', 'error')
     
-    return render_template('feedback.html')
+    # Get 5 most recent feedback items to display status
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor.execute('''
+            SELECT f.id, f.title, f.feedback_type, f.priority, f.status, 
+                   f.implementation_status, f.created_at, f.updated_at
+            FROM feedback f
+            ORDER BY f.created_at DESC
+            LIMIT 5
+        ''')
+        recent_feedback = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return render_template('feedback.html', recent_feedback=recent_feedback, format_vietnam_time=format_vietnam_time)
+        
+    except Exception as e:
+        logger.error(f"Error loading recent feedback: {str(e)}", exc_info=True)
+        return render_template('feedback.html')
 
 @app.route('/admin/feedback', methods=['GET', 'POST'])
 def admin_feedback():
@@ -889,6 +910,154 @@ def deploy_feature(feedback_id):
 def create_templates():
     """Create template files if they don't exist"""
     pass 
+
+# Reports routes
+@app.route('/reports')
+def reports():
+    """Show reports listing page"""
+    try:
+        # Scan .data folder for available reports
+        reports_data = scan_reports_folder()
+        return render_template('reports.html', reports=reports_data)
+    except Exception as e:
+        logger.error(f"Error loading reports page: {str(e)}")
+        return render_template('reports.html', reports={'error': str(e)})
+
+@app.route('/reports/view/<path:report_path>')
+def view_report(report_path):
+    """View a specific report"""
+    try:
+        # Security: Only allow files within .data folder
+        if '..' in report_path or report_path.startswith('/'):
+            return "Access denied", 403
+        
+        full_path = os.path.join(os.path.dirname(__file__), '.data', report_path)
+        
+        if not os.path.exists(full_path):
+            return "Report not found", 404
+        
+        # For HTML files, serve directly
+        if report_path.endswith('.html'):
+            return send_file(full_path)
+        
+        # For JSON files, return as JSON
+        elif report_path.endswith('.json'):
+            with open(full_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return jsonify(data)
+        
+        else:
+            return "Unsupported file type", 400
+            
+    except Exception as e:
+        logger.error(f"Error viewing report {report_path}: {str(e)}")
+        return f"Error loading report: {str(e)}", 500
+
+@app.route('/reports/generate/<report_type>')
+def generate_report(report_type):
+    """Generate a new report"""
+    try:
+        if report_type == 'interactive_vietnamese':
+            # Run the Vietnamese interactive report generator
+            script_path = os.path.join(os.path.dirname(__file__), '.data', 'enhanced_interactive_report', 'generate_interactive_vietnamese_report.py')
+            if os.path.exists(script_path):
+                result = subprocess.run(['python', script_path], capture_output=True, text=True, cwd=os.path.dirname(script_path))
+                if result.returncode == 0:
+                    return jsonify({'status': 'success', 'message': 'Báo cáo đã được tạo thành công'})
+                else:
+                    return jsonify({'status': 'error', 'message': f'Lỗi tạo báo cáo: {result.stderr}'})
+            else:
+                return jsonify({'status': 'error', 'message': 'Script không tồn tại'})
+        
+        elif report_type == 'actionable_insights':
+            # Run the insights summary generator
+            script_path = os.path.join(os.path.dirname(__file__), '.data', 'scripts', 'generate_insights_summary.py')
+            if os.path.exists(script_path):
+                result = subprocess.run(['python', script_path], capture_output=True, text=True, cwd=os.path.dirname(script_path))
+                if result.returncode == 0:
+                    return jsonify({'status': 'success', 'message': 'Báo cáo insights đã được tạo thành công'})
+                else:
+                    return jsonify({'status': 'error', 'message': f'Lỗi tạo báo cáo: {result.stderr}'})
+            else:
+                return jsonify({'status': 'error', 'message': 'Script không tồn tại'})
+        
+        else:
+            return jsonify({'status': 'error', 'message': 'Loại báo cáo không được hỗ trợ'})
+            
+    except Exception as e:
+        logger.error(f"Error generating report {report_type}: {str(e)}")
+        return jsonify({'status': 'error', 'message': f'Lỗi: {str(e)}'})
+
+def scan_reports_folder():
+    """Scan .data folder and categorize reports"""
+    reports = {
+        'interactive_reports': [],
+        'performance_analysis': [],
+        'user_insights': [],
+        'weekly_reports': []
+    }
+    
+    try:
+        data_path = os.path.join(os.path.dirname(__file__), '.data')
+        
+        if not os.path.exists(data_path):
+            return reports
+        
+        # Scan each category folder
+        categories = {
+            'enhanced_interactive_report': 'interactive_reports',
+            'performance_analysis': 'performance_analysis',
+            'user_insights': 'user_insights',
+            'weekly_reports': 'weekly_reports'
+        }
+        
+        for folder, category in categories.items():
+            folder_path = os.path.join(data_path, folder)
+            if os.path.exists(folder_path):
+                for file in os.listdir(folder_path):
+                    if file.endswith(('.html', '.json')):
+                        file_path = os.path.join(folder_path, file)
+                        file_stats = os.stat(file_path)
+                        
+                        reports[category].append({
+                            'name': file,
+                            'path': f"{folder}/{file}",
+                            'size': format_file_size(file_stats.st_size),
+                            'modified': datetime.fromtimestamp(file_stats.st_mtime).strftime('%d/%m/%Y %H:%M'),
+                            'type': 'HTML Report' if file.endswith('.html') else 'JSON Data',
+                            'description': get_file_description(file)
+                        })
+        
+        # Sort by modification time (newest first)
+        for category in reports.values():
+            if isinstance(category, list):
+                category.sort(key=lambda x: x['modified'], reverse=True)
+        
+    except Exception as e:
+        logger.error(f"Error scanning reports folder: {str(e)}")
+        reports['error'] = str(e)
+    
+    return reports
+
+def format_file_size(size_bytes):
+    """Format file size in human readable format"""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+def get_file_description(filename):
+    """Get description for different report files"""
+    descriptions = {
+        'bao_cao_strava_tuong_tac.html': 'Báo cáo tương tác tiếng Việt với biểu đồ, phân loại vận động viên và khuyến nghị cá nhân hóa',
+        'strava_enhanced_analysis.html': 'Phân tích hiệu suất chi tiết với khuyến nghị cá nhân, so sánh cộng đồng và xu hướng',
+        'actionable_insights_summary.html': 'Tóm tắt khuyến nghị thông minh và hành động cụ thể cho HLV và vận động viên',
+        'strava_analysis_report.html': 'Báo cáo tổng quan hiệu suất hàng tuần với thống kê cơ bản và bảng xếp hạng'
+    }
+    
+    return descriptions.get(filename, 'Báo cáo phân tích hiệu suất chạy bộ')
 
 if __name__ == '__main__':
     # Initialize logging first

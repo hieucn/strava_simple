@@ -748,6 +748,29 @@
                 padding: 3px 5px;
             }
         }
+
+        /* Reports navigation highlight */
+        .nav-link.reports-nav {
+            position: relative;
+        }
+        .nav-link.reports-nav.active {
+            color: #f093fb !important;
+        }
+        .nav-link.reports-nav::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #f093fb);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        .nav-link.reports-nav:hover::after,
+        .nav-link.reports-nav.active::after {
+            width: 80%;
+        }
     </style>
 </head>
 <body>
@@ -766,6 +789,9 @@
                 <div class="navbar-nav ms-auto">
                     <a class="nav-link" href="{{ url_for('weekly_results') }}" title="Kết quả thử thách">
                         <i class="fas fa-trophy"></i> <span class="d-none d-lg-inline">Kết quả thử thách</span>
+                    </a>
+                    <a class="nav-link reports-nav {{ 'active' if request.endpoint == 'reports' }}" href="{{ url_for('reports') }}" title="Báo cáo phân tích">
+                        <i class="fas fa-chart-line"></i> <span class="d-none d-lg-inline">Báo Cáo</span>
                     </a>
                     <a class="nav-link" href="{{ url_for('register_challenge') }}" title="Đăng Ký">
                         <i class="fas fa-user-plus"></i> <span class="d-none d-lg-inline">Đăng Ký</span>

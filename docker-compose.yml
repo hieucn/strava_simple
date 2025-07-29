@@ -6,6 +6,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/app
-      - .log:/app/.rootlog
+      # - .log:/app/.rootlog
     ports:
       - "5001:5001"

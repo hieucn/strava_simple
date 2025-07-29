@@ -156,6 +156,81 @@
                 </div>
             </div>
 
+            <!-- Recent Feedback Status -->
+            {% if recent_feedback %}
+            <div class="card shadow-lg border-0 mt-5">
+                <div class="card-header bg-gradient text-white text-center py-3" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <h4 class="mb-0"><i class="fas fa-history me-2"></i>Trạng Thái 5 Góp Ý Gần Nhất</h4>
+                    <p class="mb-0 mt-2 opacity-75">Theo dõi tiến độ xử lý các góp ý của cộng đồng</p>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        {% for feedback in recent_feedback %}
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <h6 class="mb-1 text-truncate">{{ feedback.title }}</h6>
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                {% if feedback.feedback_type == 'suggestion' %}
+                                                <span class="badge bg-primary">💡 Đề xuất</span>
+                                                {% elif feedback.feedback_type == 'bug' %}
+                                                <span class="badge bg-danger">🐛 Báo lỗi</span>
+                                                {% elif feedback.feedback_type == 'ui_ux' %}
+                                                <span class="badge bg-info">🎨 UI/UX</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">💬 {{ feedback.feedback_type }}</span>
+                                                {% endif %}
+                                                
+                                                {% if feedback.priority == 'urgent' %}
+                                                <span class="badge bg-danger">🔴 Khẩn cấp</span>
+                                                {% elif feedback.priority == 'high' %}
+                                                <span class="badge bg-warning">🟠 Cao</span>
+                                                {% elif feedback.priority == 'medium' %}
+                                                <span class="badge bg-success">🟡 Trung bình</span>
+                                                {% else %}
+                                                <span class="badge bg-light text-dark">🟢 Thấp</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            {% if feedback.status == 'implemented' %}
+                                            <span class="badge bg-success px-3 py-2">
+                                                <i class="fas fa-check-circle me-1"></i>Đã triển khai
+                                            </span>
+                                            {% elif feedback.status == 'in_progress' %}
+                                            <span class="badge bg-warning px-3 py-2">
+                                                <i class="fas fa-clock me-1"></i>Đang xử lý
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-secondary px-3 py-2">
+                                                <i class="fas fa-hourglass-start me-1"></i>Chờ xử lý
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-3 text-end">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                {{ format_vietnam_time(feedback.created_at) }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Cập nhật theo thời gian thực. Cảm ơn bạn đã đóng góp để cải thiện hệ thống!
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- How It Works -->
             <div class="row g-4 mt-5">
                 <div class="col-12">

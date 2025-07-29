@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Báo Cáo Phân Tích - Thử Thách Chạy Bộ{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="fas fa-chart-line me-3"></i>Báo Cáo Phân Tích
+                </h1>
+                <p class="lead mb-4">
+                    Khám phá insights chi tiết về hiệu suất và xu hướng của cộng đồng runners
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container py-4">
+    {% if reports.error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i> Lỗi tải báo cáo: {{ reports.error }}
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filter-section">
+                <h5 class="mb-3"><i class="fas fa-magic"></i> Tạo Báo Cáo Mới</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <button class="btn btn-primary w-100" onclick="generateReport('interactive_vietnamese')">
+                            <i class="fas fa-chart-pie"></i> Tạo Báo Cáo Tương Tác Tiếng Việt
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <button class="btn btn-info w-100" onclick="generateReport('actionable_insights')">
+                            <i class="fas fa-lightbulb"></i> Tạo Báo Cáo Khuyến Nghị & Hành Động
+                        </button>
+                    </div>
+                </div>
+                <div id="generation-status" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Reports -->
+    {% if reports.interactive_reports %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section">
+                <h2><i class="fas fa-mouse-pointer text-primary"></i> Báo Cáo Tương Tác</h2>
+                <p class="text-muted">Báo cáo với biểu đồ tương tác, phân loại vận động viên và khuyến nghị cá nhân hóa</p>
+                <div class="row">
+                    {% for report in reports.interactive_reports %}
+                    <div class="col-lg-6 mb-3">
+                        <div class="challenge-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">
+                                            <i class="fas fa-chart-bar text-primary"></i> 
+                                            {% if 'vietnamese' in report.name.lower() or 'tuong_tac' in report.name.lower() %}
+                                                Báo Cáo Tương Tác Tiếng Việt
+                                            {% else %}
+                                                Báo Cáo Tương Tác
+                                            {% endif %}
+                                        </h5>
+                                        <span class="badge bg-primary">Báo Cáo HTML</span>
+                                    </div>
+                                    <small class="text-muted">{{ report.size }}</small>
+                                </div>
+                                <p class="card-text">{{ report.description }}</p>
+                                <div class="row text-center mb-3">
+                                    <div class="col">
+                                        <small class="text-muted">Cập nhật: {{ report.modified }}</small>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('view_report', report_path=report.path) }}" 
+                                       class="btn btn-primary" target="_blank">
+                                        <i class="fas fa-external-link-alt"></i> Xem Báo Cáo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Performance Analysis -->
+    {% if reports.performance_analysis %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section">
+                <h2><i class="fas fa-tachometer-alt text-success"></i> Phân Tích Hiệu Suất Chi Tiết</h2>
+                <p class="text-muted">Phân tích sâu về hiệu suất cá nhân, xu hướng và so sánh với cộng đồng</p>
+                <div class="row">
+                    {% for report in reports.performance_analysis %}
+                    <div class="col-lg-6 mb-3">
+                        <div class="challenge-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">
+                                            <i class="fas fa-chart-line text-success"></i> Phân Tích Hiệu Suất Nâng Cao
+                                        </h5>
+                                        <span class="badge bg-success">Báo Cáo HTML</span>
+                                    </div>
+                                    <small class="text-muted">{{ report.size }}</small>
+                                </div>
+                                <p class="card-text">{{ report.description }}</p>
+                                <div class="row text-center mb-3">
+                                    <div class="col">
+                                        <small class="text-muted">Cập nhật: {{ report.modified }}</small>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('view_report', report_path=report.path) }}" 
+                                       class="btn btn-success" target="_blank">
+                                        <i class="fas fa-external-link-alt"></i> Xem Phân Tích
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- User Insights -->
+    {% if reports.user_insights %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section">
+                <h2><i class="fas fa-lightbulb text-warning"></i> Khuyến Nghị & Hành Động</h2>
+                <p class="text-muted">Khuyến nghị cụ thể và hành động cần thực hiện cho HLV và vận động viên</p>
+                <div class="row">
+                    {% for report in reports.user_insights %}
+                    <div class="col-lg-6 mb-3">
+                        <div class="challenge-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">
+                                            <i class="fas fa-brain text-warning"></i> Khuyến Nghị Thông Minh
+                                        </h5>
+                                        <span class="badge bg-warning text-dark">Báo Cáo HTML</span>
+                                    </div>
+                                    <small class="text-muted">{{ report.size }}</small>
+                                </div>
+                                <p class="card-text">{{ report.description }}</p>
+                                <div class="row text-center mb-3">
+                                    <div class="col">
+                                        <small class="text-muted">Cập nhật: {{ report.modified }}</small>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('view_report', report_path=report.path) }}" 
+                                       class="btn btn-warning" target="_blank">
+                                        <i class="fas fa-external-link-alt"></i> Xem Khuyến Nghị
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Weekly Reports -->
+    {% if reports.weekly_reports %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section">
+                <h2><i class="fas fa-calendar-week text-info"></i> Báo Cáo Theo Tuần</h2>
+                <p class="text-muted">Tóm tắt hiệu suất hàng tuần và phân tích xu hướng tổng thể</p>
+                <div class="row">
+                    {% for report in reports.weekly_reports %}
+                    <div class="col-lg-6 mb-3">
+                        <div class="challenge-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">
+                                            <i class="fas fa-calendar text-info"></i> Báo Cáo Hàng Tuần
+                                        </h5>
+                                        <span class="badge bg-info">Báo Cáo HTML</span>
+                                    </div>
+                                    <small class="text-muted">{{ report.size }}</small>
+                                </div>
+                                <p class="card-text">{{ report.description }}</p>
+                                <div class="row text-center mb-3">
+                                    <div class="col">
+                                        <small class="text-muted">Cập nhật: {{ report.modified }}</small>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('view_report', report_path=report.path) }}" 
+                                       class="btn btn-info" target="_blank">
+                                        <i class="fas fa-external-link-alt"></i> Xem Báo Cáo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Reports Message -->
+    {% if not (reports.interactive_reports or reports.performance_analysis or reports.user_insights or reports.weekly_reports) and not reports.error %}
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-chart-pie fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted">Chưa có báo cáo nào</h3>
+                <p class="text-muted">Nhấp vào các nút "Tạo Báo Cáo Mới" ở trên để bắt đầu tạo báo cáo phân tích</p>
+                <div class="mt-4">
+                    <button class="btn btn-primary me-2" onclick="generateReport('interactive_vietnamese')">
+                        <i class="fas fa-chart-pie"></i> Tạo Báo Cáo Tương Tác
+                    </button>
+                    <button class="btn btn-info" onclick="generateReport('actionable_insights')">
+                        <i class="fas fa-lightbulb"></i> Tạo Báo Cáo Khuyến Nghị
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function generateReport(reportType) {
+    const statusDiv = document.getElementById('generation-status');
+    statusDiv.style.display = 'block';
+    
+    let reportName = '';
+    switch(reportType) {
+        case 'interactive_vietnamese':
+            reportName = 'Báo Cáo Tương Tác Tiếng Việt';
+            break;
+        case 'actionable_insights':
+            reportName = 'Báo Cáo Khuyến Nghị & Hành Động';
+            break;
+        default:
+            reportName = 'Báo Cáo';
+    }
+    
+    statusDiv.innerHTML = `<div class="alert alert-info">
+        <i class="fas fa-spinner fa-spin"></i> 
+        Đang tạo ${reportName}... Vui lòng đợi trong giây lát.
+    </div>`;
+    
+    fetch(`/reports/generate/${reportType}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                statusDiv.innerHTML = `<div class="alert alert-success">
+                    <i class="fas fa-check"></i> 
+                    ${data.message} Trang sẽ tự động làm mới sau 2 giây.
+                </div>`;
+                // Reload page after 2 seconds to show new report
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                statusDiv.innerHTML = `<div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Lỗi tạo báo cáo:</strong> ${data.message}
+                </div>`;
+            }
+        })
+        .catch(error => {
+            statusDiv.innerHTML = `<div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>Lỗi kết nối:</strong> Không thể kết nối đến server. Vui lòng thử lại.
+            </div>`;
+            console.error('Error:', error);
+        });
+}
+
+// Auto-hide status messages after 15 seconds
+setTimeout(() => {
+    const statusDiv = document.getElementById('generation-status');
+    if (statusDiv.style.display === 'block') {
+        statusDiv.style.display = 'none';
+    }
+}, 15000);
+</script>
+{% endblock %}

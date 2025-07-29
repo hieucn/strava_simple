@@ -68,7 +68,8 @@ instance/
 
 # Scrapy stuff:
 .scrapy
-
+.data/*
+**.backup.**
 # Sphinx documentation
 docs/_build/
 
@@ -253,3 +254,5 @@ running_challenge.db*
 *.backup
 *.bak
 cron.log
+
+test.ipynb
